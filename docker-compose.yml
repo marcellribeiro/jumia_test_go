@@ -1,0 +1,77 @@
+version: '3'
+
+services:
+  database:
+    image: mariadb:10.5.8
+    command: --default-authentication-plugin=mysql_native_password
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_USER: root
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_ROOT_HOST: 127.0.0.1
+      MYSQL_TCP_PORT: 3307
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
+      MYSQL_DATABASE: jumia_test
+    container_name: service_mysql
+    volumes:
+      - service_b:/var/lib/mysql
+#    healthcheck:
+#      test: [ "CMD", "mariadb-admin", "--protocol", "tcp" ,"ping" ]
+#      timeout: 3m
+#      interval: 10s
+#      retries: 10
+    ports:
+      - "3307:3307"
+    networks:
+      - "backend"
+
+  service_a:
+    build:
+      context: service_a
+      dockerfile: ./Dockerfile
+    ports:
+      - 8062:8062
+    volumes:
+      - .:/service_a1
+    depends_on:
+      - database
+    container_name: service_a2
+    environment:
+      - 'SERVICE_B_URL=http://127.0.0.1:8063'
+    networks:
+      - "backend"
+
+  service_b:
+    build:
+      context: service_b
+      dockerfile: ./Dockerfile
+    ports:
+      - 8063:8063
+    volumes:
+      - .:/service_b1
+    depends_on:
+      - database
+    container_name: service_b2
+    environment:
+      - 'MYSQL_PORT=3307'
+      - 'MYSQL_HOST=database'
+      - 'MYSQL_ROOT_HOST=database'
+      - 'MYSQL_USER=root'
+      - 'MYSQL_PASSWORD=root'
+      - 'MYSQL_ROOT_PASSWORD=root'
+      - 'MYSQL_DATABASE=jumia_test'
+      - 'WEIGHT_LIMIT_KG=500.00'
+    networks:
+      - "backend"
+#    restart: on-failure
+
+
+# persisted storage
+volumes:
+  service_a:
+  service_b:
+
+networks:
+  backend:
+    driver: "bridge"
